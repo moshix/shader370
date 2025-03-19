@@ -49,7 +49,9 @@ A dynamic WebGL shader visualization application with music playback capabilitie
 
 ## Credits
 
-Created by hot dog studios
+Created by hot dog studios. 
+
+Some music by Lemmino.   
 
 ## License
 
