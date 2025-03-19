@@ -7,6 +7,33 @@
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
+        #startOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            cursor: pointer;
+        }
+        #startText {
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            text-align: center;
+            padding: 20px;
+            border: 2px solid white;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        #startText:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
         #controls {
             position: fixed;
             bottom: 20px;
@@ -49,6 +76,9 @@
 </head>
 <body>
     <canvas id="glCanvas"></canvas>
+    <div id="startOverlay">
+        <div id="startText">Click anywhere to start the experience</div>
+    </div>
     <div id="controls">
         <button id="muteButton">🔊 Mute</button>
         <button id="skipButton">⏭️ Skip Track</button>
@@ -451,6 +481,15 @@
         let audioContext = null;
         let audioElement = null;
         let playedTracks = new Set();
+        let hasStarted = false;
+
+        function startExperience() {
+            if (!hasStarted) {
+                hasStarted = true;
+                document.getElementById('startOverlay').style.display = 'none';
+                playNextMusic();
+            }
+        }
 
         function createShader(gl, type, source) {
             const shader = gl.createShader(type);
@@ -549,10 +588,11 @@
             // Setup audio
             document.getElementById('muteButton').addEventListener('click', toggleMute);
             document.getElementById('skipButton').addEventListener('click', skipTrack);
+            document.getElementById('startOverlay').addEventListener('click', startExperience);
             
-            // Start playing music
-            playNextMusic();
-
+            // Start playing music only after user interaction
+            // playNextMusic(); // Removed from here
+            
             function resizeCanvas() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
