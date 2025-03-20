@@ -464,6 +464,628 @@
                 
                 gl_FragColor = vec4(color, 1.0);
             }
+            `,
+            // New Effect: Quantum Flux - A hypnotic effect with layered, fractal-inspired patterns
+            `
+            precision highp float;
+            uniform vec2 r;
+            uniform float t;
+            varying vec2 vUv;
+            
+            vec3 hsv2rgb(vec3 c) {
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            }
+            
+            float fractalnoise(vec2 p) {
+                float n = 0.0;
+                float amp = 1.0;
+                float freq = 1.0;
+                
+                for(int i = 0; i < 6; i++) {
+                    float noise = fract(sin(dot(p * freq, vec2(127.1, 311.7))) * 43758.5453);
+                    n += noise * amp;
+                    amp *= 0.5;
+                    freq *= 2.0;
+                }
+                
+                return n;
+            }
+            
+            void main() {
+                vec2 uv = vUv * 2.0 - 1.0;
+                vec2 p = uv * vec2(r.x/r.y, 1.0);
+                
+                // Multiple layers of shifting, rotating patterns
+                float time = t * 0.5;
+                float rotationSpeed = 0.2;
+                float zoomSpeed = 0.15;
+                
+                // First layer - rotating fractal noise
+                float angle1 = time * rotationSpeed;
+                float c1 = cos(angle1), s1 = sin(angle1);
+                vec2 q1 = mat2(c1, -s1, s1, c1) * p;
+                q1 *= 1.0 + sin(time * zoomSpeed) * 0.3;
+                float n1 = fractalnoise(q1 * 3.0);
+                
+                // Second layer - contracting/expanding rings
+                float rings = length(p) * 10.0 - time * 2.0;
+                rings = abs(mod(rings, 2.0) - 1.0);
+                rings = smoothstep(0.5, 0.8, rings);
+                
+                // Third layer - spiral waves
+                float angle2 = atan(p.y, p.x);
+                float spiral = sin(angle2 * 8.0 + length(p) * 15.0 - time * 3.0);
+                
+                // Combine layers with temporal variations
+                float blend = sin(time * 0.3) * 0.5 + 0.5;
+                float pattern = mix(n1, rings, blend * 0.7);
+                pattern = mix(pattern, spiral, (1.0 - blend) * 0.5);
+                
+                // Create pulsating color gradients
+                vec3 color1 = hsv2rgb(vec3(0.7 + time * 0.05, 0.8, 0.6)); // Blue-purple base
+                vec3 color2 = hsv2rgb(vec3(0.9 + time * 0.05, 0.9, 0.7)); // Magenta-pink accent
+                vec3 color3 = hsv2rgb(vec3(0.5 + time * 0.05, 0.7, 0.8)); // Cyan highlight
+                
+                // Mix colors based on pattern and oscillating functions
+                vec3 color = mix(color1, color2, pattern);
+                color = mix(color, color3, spiral * 0.5);
+                
+                // Add shimmering effect
+                float shimmer = fractalnoise(p * 50.0 + time * 0.1);
+                color += vec3(1.0) * shimmer * 0.1;
+                
+                // Vignette effect
+                float vignette = 1.0 - length(p * 0.7);
+                vignette = smoothstep(0.0, 0.8, vignette);
+                color *= vignette * 1.5;
+                
+                gl_FragColor = vec4(color, 1.0);
+            }
+            `,
+            // New Effect: Liquid Crystal - Beautiful fluid-like movement with prismatic colors
+            `
+            precision highp float;
+            uniform vec2 r;
+            uniform float t;
+            varying vec2 vUv;
+            
+            vec3 hsv2rgb(vec3 c) {
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            }
+            
+            // Simplex noise function
+            vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+            
+            float snoise(vec2 v) {
+                const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                         -0.577350269189626, 0.024390243902439);
+                vec2 i  = floor(v + dot(v, C.yy));
+                vec2 x0 = v -   i + dot(i, C.xx);
+                vec2 i1;
+                i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+                vec4 x12 = x0.xyxy + C.xxzz;
+                x12.xy -= i1;
+                i = mod(i, 289.0);
+                vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+                vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
+                m = m*m;
+                m = m*m;
+                vec3 x = 2.0 * fract(p * C.www) - 1.0;
+                vec3 h = abs(x) - 0.5;
+                vec3 ox = floor(x + 0.5);
+                vec3 a0 = x - ox;
+                m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+                vec3 g;
+                g.x  = a0.x  * x0.x  + h.x  * x0.y;
+                g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+                return 130.0 * dot(m, g);
+            }
+            
+            void main() {
+                vec2 uv = vUv * 2.0 - 1.0;
+                vec2 p = uv * vec2(r.x/r.y, 1.0);
+                
+                float time = t * 0.4;
+                
+                // Create fluid movement with multiple layers of noise
+                float scale1 = 2.0;
+                float scale2 = 4.0;
+                float scale3 = 8.0;
+                
+                // Flow direction and speed for each layer
+                vec2 flow1 = vec2(time * 0.1, time * 0.2);
+                vec2 flow2 = vec2(-time * 0.15, time * 0.1);
+                vec2 flow3 = vec2(time * 0.2, -time * 0.05);
+                
+                // Generate noise layers
+                float n1 = snoise((p + flow1) * scale1) * 0.5 + 0.5;
+                float n2 = snoise((p + flow2) * scale2) * 0.5 + 0.5;
+                float n3 = snoise((p + flow3) * scale3) * 0.5 + 0.5;
+                
+                // Combine layers with varying influence
+                float alpha = 0.6 + 0.2 * sin(time * 0.5);
+                float beta = 0.3 + 0.2 * cos(time * 0.7);
+                
+                float pattern = mix(n1, n2, alpha);
+                pattern = mix(pattern, n3, beta);
+                
+                // Create prismatic color effect
+                float angle = atan(p.y, p.x);
+                float radius = length(p);
+                
+                // Use pattern to distort angle and radius for refractive look
+                float distortedAngle = angle + pattern * 3.0 - time * 0.5;
+                float distortedRadius = radius * (1.0 + pattern * 0.5);
+                
+                // Create iridescent, prismatic color
+                vec3 color = hsv2rgb(vec3(
+                    distortedAngle / (2.0 * 3.14159) + time * 0.1 + distortedRadius * 0.2, 
+                    0.7 + pattern * 0.3, 
+                    0.6 + pattern * 0.4
+                ));
+                
+                // Add highlights that follow the fluid pattern
+                float highlight = smoothstep(0.6, 0.9, pattern);
+                color += vec3(1.0, 1.0, 1.0) * highlight * 0.3;
+                
+                // Add subtle rainbow edges
+                float edge = smoothstep(0.4, 0.5, abs(pattern - 0.5)) * 0.3;
+                color += hsv2rgb(vec3(distortedAngle / (2.0 * 3.14159) + time * 0.2, 1.0, 0.9)) * edge;
+                
+                // Add radial glow
+                float glow = 1.0 - smoothstep(0.0, 0.8, radius);
+                color += vec3(0.1, 0.2, 0.8) * glow * 0.3;
+                
+                gl_FragColor = vec4(color, 1.0);
+            }
+            `,
+            // New Effect: Aurora Dreams - Northern lights-inspired effect with organic flowing patterns
+            `
+            precision highp float;
+            uniform vec2 r;
+            uniform float t;
+            varying vec2 vUv;
+            
+            vec3 hsv2rgb(vec3 c) {
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            }
+            
+            // Simple hash function
+            float hash(vec2 p) {
+                return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+            }
+            
+            // Value noise
+            float noise(vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f); // Smoothstep
+                
+                float a = hash(i);
+                float b = hash(i + vec2(1.0, 0.0));
+                float c = hash(i + vec2(0.0, 1.0));
+                float d = hash(i + vec2(1.0, 1.0));
+                
+                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            }
+            
+            // Fractal Brownian Motion
+            float fbm(vec2 p) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                float frequency = 1.0;
+                // Add several octaves of noise
+                for (int i = 0; i < 6; i++) {
+                    value += amplitude * noise(p * frequency);
+                    amplitude *= 0.5;
+                    frequency *= 2.0;
+                }
+                return value;
+            }
+            
+            void main() {
+                vec2 uv = vUv * 2.0 - 1.0;
+                vec2 p = uv * vec2(r.x/r.y, 1.0);
+                
+                float time = t * 0.3;
+                
+                // Create base aurora pattern using FBM noise
+                vec2 auroraPos = vec2(p.x * 2.0, p.y + time * 0.2);
+                float auroraBase = fbm(auroraPos);
+                
+                // Add movement and layers
+                float aurora1 = fbm(auroraPos + vec2(time * 0.1, 0.0));
+                float aurora2 = fbm(auroraPos + vec2(-time * 0.15, time * 0.1));
+                
+                // Combine layers with vertical position
+                float y = p.y + 0.8; // Shift aurora to upper part of screen
+                float auroraStrength = smoothstep(0.0, 0.8, y); // Stronger at top
+                auroraStrength *= smoothstep(-0.2, 0.6, aurora1 + aurora2 * 0.5);
+                
+                // Vertical curtain effect
+                float curtain = sin(p.x * 5.0 + time + aurora1 * 2.0) * 0.5 + 0.5;
+                curtain = pow(curtain, 1.5) * auroraStrength;
+                
+                // Add horizontal bands with varying intensity
+                float bands = sin(p.y * 15.0 + aurora2 * 10.0) * 0.5 + 0.5;
+                bands = smoothstep(0.3, 0.7, bands) * curtain;
+                
+                // Create star field
+                float stars = pow(hash(p * 500.0), 20.0) * smoothstep(0.0, 0.5, -y + 0.2);
+                
+                // Aurora colors - greens and blues with purple accents
+                vec3 color1 = hsv2rgb(vec3(0.3 + aurora1 * 0.1, 0.8, 0.8)); // Green
+                vec3 color2 = hsv2rgb(vec3(0.55 + aurora2 * 0.1, 0.9, 0.7)); // Blue
+                vec3 color3 = hsv2rgb(vec3(0.8, 0.9, 0.8)); // Purple accent
+                
+                // Mix aurora colors
+                vec3 auroraColor = mix(color1, color2, curtain);
+                auroraColor = mix(auroraColor, color3, bands * 0.3);
+                
+                // Combine aurora with starfield
+                vec3 color = auroraColor * curtain;
+                color += vec3(1.0) * stars;
+                
+                // Add subtle ground reflection
+                float groundReflection = smoothstep(0.0, 0.2, -y) * 0.3 * curtain;
+                color += auroraColor * groundReflection;
+                
+                // Add subtle glow
+                float glow = smoothstep(0.0, 1.0, 1.0 - length(p * vec2(0.5, 1.0)));
+                color += vec3(0.0, 0.2, 0.4) * glow * 0.1;
+                
+                gl_FragColor = vec4(color, 1.0);
+            }
+            `,
+            // New Effect: Neon Cityscape - A cyberpunk-inspired cityscape with glowing neon lights
+            `
+            precision highp float;
+            uniform vec2 r;
+            uniform float t;
+            varying vec2 vUv;
+            
+            vec3 hsv2rgb(vec3 c) {
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            }
+            
+            // Distance field for a rectangle
+            float rect(vec2 p, vec2 size) {
+                vec2 d = abs(p) - size;
+                return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+            }
+            
+            // Pseudo-random function
+            float hash(float n) {
+                return fract(sin(n) * 43758.5453);
+            }
+            
+            void main() {
+                vec2 uv = vUv * 2.0 - 1.0;
+                vec2 p = uv * vec2(r.x/r.y, 1.0);
+                
+                float time = t * 0.3;
+                
+                // Create city grid
+                float gridSize = 0.1;
+                vec2 grid = abs(fract(p / gridSize - 0.5) - 0.5) / fract(p / gridSize - 0.5);
+                float g = min(grid.x, grid.y);
+                
+                // City skyline
+                vec3 color = vec3(0.0);
+                float skyline = 0.0;
+                
+                // Generate buildings
+                for (float i = -10.0; i < 10.0; i += 0.5) {
+                    // Building height based on position
+                    float height = 0.3 + 0.4 * hash(i * 10.0);
+                    // Building width
+                    float width = 0.1 + 0.1 * hash(i * 10.0 + 5.0);
+                    
+                    // Building position and size
+                    vec2 pos = vec2(i, -0.5);
+                    vec2 size = vec2(width, height);
+                    
+                    // Calculate distance field for building
+                    float d = rect(p - pos, size);
+                    
+                    // Window pattern
+                    float windows = 0.0;
+                    if (d < 0.0) {
+                        // Window grid
+                        vec2 windowUV = (p - pos) / size;
+                        vec2 windowGrid = fract(windowUV * vec2(8.0, 15.0));
+                        float windowMask = step(0.25, windowGrid.x) * step(0.25, windowGrid.y);
+                        
+                        // Some random windows light up
+                        float lit = step(0.7, hash(floor(windowUV.x * 8.0) + 100.0 * floor(windowUV.y * 15.0) + time * 0.1));
+                        
+                        // Window color
+                        windows = windowMask * lit * 0.9;
+                        
+                        // Apply building color with windows
+                        skyline = max(skyline, smoothstep(0.01, 0.0, d));
+                    }
+                    
+                    // Add windows to the color
+                    if (d < 0.0) {
+                        // Random window colors
+                        vec3 windowColor = hsv2rgb(vec3(0.6 * hash(i) + time * 0.05, 0.8, 1.0));
+                        color += windowColor * windows;
+                    }
+                }
+                
+                // Base city color (dark blue)
+                color += vec3(0.05, 0.05, 0.15) * skyline;
+                
+                // Add neon signs
+                for (float i = -5.0; i < 5.0; i += 1.0) {
+                    // Sign position
+                    float xPos = i * 0.7;
+                    float yPos = -0.2 + 0.4 * hash(i * 50.0);
+                    
+                    // Sign size and shape
+                    float size = 0.04 + 0.04 * hash(i + 10.0);
+                    vec2 signPos = vec2(xPos, yPos);
+                    
+                    // Distance to sign
+                    float d = length(p - signPos) - size;
+                    
+                    // Neon glow effect
+                    float glow = smoothstep(0.05, 0.0, d);
+                    
+                    // Different colors for each sign
+                    vec3 signColor = hsv2rgb(vec3(hash(i), 0.9, 1.0));
+                    
+                    // Flicker effect for some signs
+                    float flicker = 0.8 + 0.2 * sin(time * (5.0 + hash(i) * 10.0));
+                    if (hash(i) > 0.7) flicker = 1.0; // Some signs don't flicker
+                    
+                    // Add sign color
+                    color += signColor * glow * flicker * 0.8;
+                }
+                
+                // Add rain
+                float rainAmount = 0.3;
+                float rainSpeed = 3.0;
+                float rainStrength = 0.2;
+                
+                for (float i = 0.0; i < 20.0; i++) {
+                    float seed = i * 100.0;
+                    float rainX = hash(seed) * 2.0 - 1.0;
+                    float rainY = mod(hash(seed + 1.0) - time * rainSpeed, 2.0) - 1.0;
+                    
+                    float rainDrop = smoothstep(0.005, 0.0, length(p - vec2(rainX, rainY)) - 0.001);
+                    float rainTrail = smoothstep(0.01, 0.0, abs(p.x - rainX) - 0.001) * 
+                                     smoothstep(0.0, 0.3, p.y - rainY) * 
+                                     smoothstep(0.3, 0.0, p.y - rainY);
+                    
+                    color += vec3(0.6, 0.7, 0.9) * (rainDrop + rainTrail * 0.2) * rainStrength;
+                }
+                
+                // Add fog
+                float fog = smoothstep(-0.5, 0.5, p.y);
+                color = mix(color, vec3(0.1, 0.1, 0.15) * (1.0 - skyline * 0.5), fog * 0.7);
+                
+                // Add street glow
+                float street = smoothstep(0.05, 0.0, abs(p.y + 0.5) - 0.05);
+                color += vec3(0.1, 0.1, 0.2) * street;
+                
+                // Add dynamic street lights
+                for (float i = -10.0; i < 10.0; i += 1.0) {
+                    float xPos = i * 0.6;
+                    float d = length(p - vec2(xPos, -0.5)) - 0.03;
+                    float light = smoothstep(0.1, 0.0, d);
+                    
+                    // Street light glow
+                    vec3 lightColor = vec3(1.0, 0.8, 0.4); // Warm yellow
+                    float pulse = 0.8 + 0.2 * sin(time * 1.0 + i);
+                    
+                    color += lightColor * light * pulse * 0.5;
+                }
+                
+                // Vignette effect
+                float vignette = smoothstep(1.0, 0.0, length(p) * 0.7);
+                color *= vignette * 1.2;
+                
+                gl_FragColor = vec4(color, 1.0);
+            }
+            `,
+            // New Effect: Ocean Depths - Deep sea bioluminescent effect with light rays and particles
+            `
+            precision highp float;
+            uniform vec2 r;
+            uniform float t;
+            varying vec2 vUv;
+            
+            vec3 hsv2rgb(vec3 c) {
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            }
+            
+            // Random function
+            float random(vec2 st) {
+                return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+            }
+            
+            // Noise functions for water movement
+            float noise(vec2 st) {
+                vec2 i = floor(st);
+                vec2 f = fract(st);
+                
+                // Four corners in 2D of a tile
+                float a = random(i);
+                float b = random(i + vec2(1.0, 0.0));
+                float c = random(i + vec2(0.0, 1.0));
+                float d = random(i + vec2(1.0, 1.0));
+                
+                // Smooth interpolation
+                vec2 u = f * f * (3.0 - 2.0 * f);
+                
+                // Mix 4 corners
+                return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+            }
+            
+            // Layered noise for water effects
+            float fbm(vec2 st) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                float frequency = 1.0;
+                
+                // Combine multiple noise layers
+                for (int i = 0; i < 5; i++) {
+                    value += amplitude * noise(st * frequency);
+                    amplitude *= 0.5;
+                    frequency *= 2.0;
+                }
+                
+                return value;
+            }
+            
+            void main() {
+                vec2 uv = vUv * 2.0 - 1.0;
+                vec2 p = uv * vec2(r.x/r.y, 1.0);
+                
+                float time = t * 0.2;
+                
+                // Create deep water base
+                vec3 waterColor = vec3(0.0, 0.05, 0.2); // Deep blue
+                
+                // Add water movement with layered noise
+                vec2 waterMovement = vec2(time * 0.05, time * 0.03);
+                float waterNoise = fbm(p * 2.0 + waterMovement);
+                
+                // Water surface light refraction
+                float surfaceHeight = p.y + 0.8;
+                float surfaceLight = smoothstep(0.0, 0.5, surfaceHeight) * 0.3;
+                
+                // Create light beams from the surface
+                float beams = 0.0;
+                for (float i = 0.0; i < 5.0; i++) {
+                    float xPos = mix(-1.0, 1.0, random(vec2(i, 0.0)));
+                    float width = 0.05 + 0.1 * random(vec2(i, 1.0));
+                    float intensity = 0.3 + 0.7 * random(vec2(i, 2.0));
+                    
+                    // Beam shape - narrower at the bottom
+                    float beamX = p.x - xPos;
+                    float beamWidth = width * (1.0 + p.y);
+                    float beam = smoothstep(beamWidth, 0.0, abs(beamX));
+                    
+                    // Beam fades with depth and has some movement
+                    float depth = smoothstep(1.0, -1.0, p.y);
+                    float movement = sin(p.y * 10.0 + time * 2.0) * 0.1;
+                    
+                    beams += beam * depth * intensity * (1.0 + movement);
+                }
+                
+                // Add light beams to the scene
+                vec3 beamColor = vec3(0.2, 0.4, 0.6); // Light blue
+                waterColor += beamColor * beams * 0.2;
+                
+                // Add water surface
+                waterColor += vec3(0.1, 0.3, 0.5) * surfaceLight;
+                
+                // Add flowing water particles
+                for (float i = 0.0; i < 30.0; i++) {
+                    // Random position and size
+                    float seedX = i * 0.1;
+                    float seedY = i * 0.2;
+                    float seedS = i * 0.3;
+                    
+                    // Particle position with movement
+                    float xSpeed = 0.2 * (random(vec2(seedX, 0.0)) - 0.5);
+                    float ySpeed = -0.1 - 0.2 * random(vec2(seedY, 0.0));
+                    
+                    float xPos = fract(random(vec2(seedX, 1.0)) + time * xSpeed) * 2.0 - 1.0;
+                    float yPos = fract(random(vec2(seedY, 1.0)) + time * ySpeed) * 2.0 - 1.0;
+                    
+                    // Particle size and intensity
+                    float size = 0.002 + 0.008 * random(vec2(seedS, 0.0));
+                    float intensity = 0.5 + 0.5 * sin(time * 3.0 + i);
+                    
+                    // Calculate particle
+                    float particle = smoothstep(size, 0.0, length(p - vec2(xPos, yPos)));
+                    
+                    // Random color for each particle
+                    float hue = 0.5 + 0.2 * random(vec2(seedS, 1.0)); // Blue to cyan
+                    vec3 particleColor = hsv2rgb(vec3(hue, 0.7, 1.0));
+                    
+                    // Add particle to scene
+                    waterColor += particleColor * particle * intensity * 0.5;
+                }
+                
+                // Add bioluminescent creatures
+                for (float i = 0.0; i < 10.0; i++) {
+                    // Random position, size, and movement
+                    float seed1 = i * 10.0;
+                    float seed2 = i * 20.0;
+                    
+                    // Position with slow movement
+                    float xPos = mix(-1.0, 1.0, random(vec2(seed1, 0.0))) + 
+                                0.1 * sin(time + random(vec2(seed1, 1.0)) * 6.28);
+                    float yPos = mix(-0.8, 0.6, random(vec2(seed1, 2.0))) + 
+                                0.1 * cos(time * 0.7 + random(vec2(seed1, 3.0)) * 6.28);
+                    
+                    // Creature shape and size
+                    float size = 0.05 + 0.1 * random(vec2(seed2, 0.0));
+                    vec2 creaturePos = vec2(xPos, yPos);
+                    
+                    // Pulsating glow
+                    float pulse = 0.6 + 0.4 * sin(time * (2.0 + random(vec2(seed2, 1.0)) * 3.0));
+                    
+                    // Distance function for creature
+                    float d = length(p - creaturePos) - size * 0.2;
+                    
+                    // Create creature glow
+                    float glow = smoothstep(size, 0.0, d) * pulse;
+                    
+                    // Different colors for different creatures
+                    vec3 creatureColor = hsv2rgb(vec3(
+                        0.45 + 0.3 * random(vec2(seed2, 2.0)), // Cyan to blue to purple
+                        0.8,
+                        1.0
+                    ));
+                    
+                    // Add creature to scene
+                    waterColor += creatureColor * glow * 0.5;
+                    
+                    // Add tentacles
+                    if (random(vec2(seed2, 3.0)) > 0.5) {
+                        for (float j = 0.0; j < 5.0; j++) {
+                            float angle = j * 6.28 / 5.0 + time * random(vec2(i, j));
+                            float tentacleLength = size * (0.5 + 0.5 * random(vec2(i, j + 10.0)));
+                            
+                            vec2 dir = vec2(cos(angle), sin(angle));
+                            float tentacle = smoothstep(0.01, 0.0, 
+                                                       abs(dot(p - creaturePos, normalize(vec2(-dir.y, dir.x)))) - 0.01 * pulse) *
+                                            smoothstep(tentacleLength, 0.0, length(p - creaturePos)) *
+                                            smoothstep(0.0, 0.1, length(p - creaturePos));
+                            
+                            waterColor += creatureColor * tentacle * 0.3;
+                        }
+                    }
+                }
+                
+                // Add water caustics effect
+                float caustics = sin(p.x * 20.0 + time * 2.0) * sin(p.y * 20.0 + time * 1.7);
+                caustics = smoothstep(0.0, 1.0, caustics * 0.5 + 0.5) * surfaceLight;
+                waterColor += vec3(0.1, 0.3, 0.5) * caustics * 0.2;
+                
+                // Add subtle vignette
+                float vignette = 1.0 - length(p * 0.7);
+                vignette = smoothstep(0.0, 1.0, vignette);
+                waterColor *= vignette;
+                
+                gl_FragColor = vec4(waterColor, 1.0);
+            }
             `
         ];
 
@@ -472,11 +1094,9 @@
             'Country_Gentleman.mp3',
             'starwalk.mp3',
             'Fear.mp3',
-            //'Slow_Times_over_Here.mp3',
             'Parallax.mp3',
             'Terra.mp3',
             'The Pression.mp3',
-            //'Venusian.mp3',
             "nocturnal.flac",
             "space1.mp3",
             "space3.mp3",
