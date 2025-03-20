@@ -82,7 +82,6 @@
     <div id="controls">
         <button id="muteButton">🔊 Mute</button>
         <button id="skipButton">⏭️ Skip Track</button>
-        <div id="currentEffect">Effect: 1/6</div>
         <div id="currentTrack" style="margin-top: 5px; font-size: 14px;"></div>
     </div>
     <div id="copyright">(c) hot dog studios</div>
@@ -98,7 +97,8 @@
         // 0.5 music controls
         // 0.6 ask user to click something to make music play
         // 0.7 added more effects
-
+        // 0.8 remvoe effect counter
+        
         const vertexShaderSrc = `
         attribute vec2 position;
         varying vec2 vUv;
@@ -655,8 +655,6 @@
                 const position = gl.getAttribLocation(program, "position");
                 gl.enableVertexAttribArray(position);
                 gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-                
-                document.getElementById('currentEffect').textContent = `Effect: ${currentEffect + 1}/${shaderEffects.length}`;
             }
 
             // Add keyboard controls
