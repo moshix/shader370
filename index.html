@@ -740,38 +740,178 @@
                 return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
             }
 
+            float hash(float n) {
+                return fract(sin(n) * 43758.5453123);
+            }
+            
             float noise(vec2 p) {
-                return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f);
+                float n = i.x + i.y * 57.0;
+                return mix(
+                    mix(hash(n), hash(n + 1.0), f.x),
+                    mix(hash(n + 57.0), hash(n + 58.0), f.x),
+                    f.y
+                );
+            }
+            
+            float rect(vec2 p, vec2 size) {
+                vec2 d = abs(p) - size;
+                return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
             }
 
             void main() {
                 vec2 uv = vUv * 2.0 - 1.0;
                 vec2 p = uv * vec2(r.x/r.y, 1.0);
                 
-                float a = atan(p.y, p.x);
-                float r = length(p);
+                float time = t * 0.3;
                 
-                // Create nebula-like effect
-                float n = noise(p + t * 0.1);
-                float f = sin(r * 10.0 - t * 2.0) * cos(a * 5.0 + t);
-                f += sin(p.x * 8.0 + t) * cos(p.y * 8.0 - t);
-                f += noise(p * 2.0 + t * 0.2) * 0.5;
+                // Create dark city background
+                vec3 color = vec3(0.02, 0.02, 0.05); // Dark blue night
                 
-                // Create multiple layers of color
-                vec3 color1 = hsv2rgb(vec3(0.6 + f * 0.2, 0.8, 0.5 + f * 0.5)); // Blue
-                vec3 color2 = hsv2rgb(vec3(0.8 + f * 0.2, 0.8, 0.5 + f * 0.5)); // Purple
-                vec3 color3 = hsv2rgb(vec3(0.9 + f * 0.2, 0.8, 0.5 + f * 0.5)); // Pink
+                // City skyline with buildings
+                float skyline = 0.0;
                 
-                vec3 color = mix(color1, color2, sin(t * 0.5) * 0.5 + 0.5);
-                color = mix(color, color3, cos(t * 0.7) * 0.5 + 0.5);
+                // Generate buildings
+                for (int i = -10; i < 10; i++) {
+                    // Building properties
+                    float seed = float(i) * 10.0;
+                    float height = 0.3 + 0.4 * hash(seed);
+                    float width = 0.1 + 0.05 * hash(seed + 5.0);
+                    float xPos = float(i) * 0.2 + 0.1 * hash(seed + 10.0);
+                    
+                    // Building rectangle
+                    vec2 buildingPos = vec2(xPos, -0.5 + height * 0.5);
+                    vec2 buildingSize = vec2(width * 0.5, height * 0.5);
+                    float building = rect(p - buildingPos, buildingSize);
+                    
+                    // Add building to skyline
+                    if (building < 0.0) {
+                        skyline = 1.0;
+                        
+                        // Windows
+                        vec2 windowUV = (p - buildingPos) / buildingSize;
+                        vec2 windowGrid = fract(windowUV * vec2(5.0, 8.0));
+                        float windowMask = step(0.3, windowGrid.x) * step(0.3, windowGrid.y);
+                        
+                        // Random lit windows
+                        float lit = step(0.5, hash(floor(windowUV.x * 5.0) + 100.0 * floor(windowUV.y * 8.0) + time * 0.2));
+                        
+                        // Add windows to the color
+                        vec3 windowColor = hsv2rgb(vec3(
+                            0.6 * hash(seed), 
+                            0.5 + 0.5 * hash(seed + 20.0), 
+                            0.8 + 0.2 * hash(seed + 30.0)
+                        ));
+                        
+                        // Flicker some windows
+                        float flicker = 0.8 + 0.2 * sin(time * (5.0 + hash(seed) * 10.0));
+                        
+                        // Add the window lights
+                        color += windowColor * windowMask * lit * flicker * 0.8;
+                    }
+                }
                 
-                // Add stars
-                float stars = pow(noise(p * 50.0), 20.0);
-                color += vec3(1.0) * stars * 0.5;
+                // Ground plane with grid
+                float ground = smoothstep(0.005, 0.0, abs(p.y + 0.5) - 0.005);
+                color += vec3(0.1, 0.1, 0.2) * ground;
                 
-                // Add glow
-                float glow = smoothstep(0.0, 1.0, 1.0 - r);
-                color += vec3(0.5, 0.3, 0.8) * glow * 0.3;
+                // Add street grid
+                float streetX = smoothstep(0.002, 0.0, abs(fract(p.x * 5.0) - 0.5) - 0.002) * step(-0.5, p.y);
+                float streetY = smoothstep(0.002, 0.0, abs(fract(p.y * 5.0) - 0.5) - 0.002) * step(-0.5, p.y);
+                color += vec3(0.1, 0.1, 0.3) * (streetX + streetY);
+                
+                // Add neon signs
+                for (int i = 0; i < 8; i++) {
+                    float seedSign = float(i) * 20.0;
+                    
+                    // Sign position and properties
+                    float xSign = -0.8 + 1.6 * hash(seedSign);
+                    float ySign = -0.3 + 0.6 * hash(seedSign + 10.0);
+                    float sizeSign = 0.05 + 0.05 * hash(seedSign + 20.0);
+                    
+                    // Create neon sign shape
+                    float signDist = length(p - vec2(xSign, ySign)) - sizeSign;
+                    
+                    // Sign color with time variation
+                    vec3 signColor = hsv2rgb(vec3(
+                        hash(seedSign + 30.0) + time * 0.05 * hash(seedSign + 40.0),
+                        0.8,
+                        0.9
+                    ));
+                    
+                    // Neon glow effect
+                    float glow = 0.003 / (signDist * signDist + 0.001);
+                    
+                    // Flickering effect for some signs
+                    float signFlicker = hash(seedSign + 50.0) > 0.7 ?
+                        0.7 + 0.3 * sin(time * (10.0 * hash(seedSign + 60.0))) :
+                        1.0;
+                    
+                    // Add to final color
+                    color += signColor * glow * signFlicker;
+                }
+                
+                // Add flying cars (small moving lights)
+                for (int i = 0; i < 5; i++) {
+                    float seedCar = float(i) * 30.0;
+                    
+                    // Car movement
+                    float carSpeed = 0.2 + 0.3 * hash(seedCar);
+                    float xCar = fract(time * carSpeed + hash(seedCar)) * 2.0 - 1.0;
+                    float yCar = -0.2 - 0.4 * hash(seedCar + 10.0);
+                    
+                    // Car lights (dual)
+                    float carLight1 = 0.002 / length(p - vec2(xCar - 0.02, yCar));
+                    float carLight2 = 0.002 / length(p - vec2(xCar + 0.02, yCar));
+                    
+                    // Car color
+                    vec3 carColor = hsv2rgb(vec3(
+                        hash(seedCar + 20.0),
+                        0.6,
+                        1.0
+                    ));
+                    
+                    // Add to final color
+                    color += carColor * (carLight1 + carLight2) * 0.5;
+                }
+                
+                // Falling rain effect
+                float rainAmount = 0.4;
+                for (int i = 0; i < 70; i++) {
+                    float seedRain = float(i) * 5.0;
+                    
+                    // Rain drop position
+                    float xRain = hash(seedRain) * 2.0 - 1.0;
+                    float yRain = fract(hash(seedRain + 10.0) - time * (1.0 + hash(seedRain + 20.0))) * 2.0 - 1.0;
+                    
+                    // Rain drop and trail
+                    float rainDrop = smoothstep(0.005, 0.0, length(p - vec2(xRain, yRain)) - 0.001);
+                    float rainTrail = smoothstep(0.004, 0.0, abs(p.x - xRain) - 0.001) * 
+                                     smoothstep(0.1, 0.0, p.y - yRain) * 
+                                     smoothstep(0.0, 0.1, p.y - yRain - 0.1);
+                    
+                    // Add blue-tinted rain
+                    color += vec3(0.6, 0.7, 1.0) * (rainDrop + rainTrail * 0.5) * rainAmount;
+                }
+                
+                // Add fog/haze
+                float fog = smoothstep(-0.4, 0.8, p.y);
+                color = mix(color, vec3(0.1, 0.1, 0.2), fog * 0.5);
+                
+                // Add bloom/glow to bright areas
+                vec3 blur = color;
+                for (int i = 0; i < 4; i++) {
+                    float blurRadius = 0.01 * float(i+1);
+                    blur += color * exp(-length(p) / blurRadius) * 0.1;
+                }
+                color = mix(color, blur, 0.5);
+                
+                // Vignette effect
+                float vignette = 1.0 - length(uv * 0.7);
+                vignette = smoothstep(0.0, 1.0, vignette);
+                color *= vignette;
                 
                 gl_FragColor = vec4(color, 1.0);
             }
