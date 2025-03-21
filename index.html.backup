@@ -496,7 +496,7 @@
                 gl_FragColor = vec4(color, 1.0);
             }
             `,
-            // Effect 8: Quantum Flux - A hypnotic effect with layered, fractal-inspired patterns
+            // New Effect: Quantum Flux - A hypnotic effect with layered, fractal-inspired patterns
             `
             precision highp float;
             uniform vec2 r;
@@ -575,7 +575,7 @@
                 gl_FragColor = vec4(color, 1.0);
             }
             `,
-            // Effect 9: Liquid Crystal - Beautiful fluid-like movement with prismatic colors
+            // New Effect: Liquid Crystal - Beautiful fluid-like movement with prismatic colors
             `
             precision highp float;
             uniform vec2 r;
@@ -588,26 +588,39 @@
                 return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
             }
             
-            // Simplex noise function
-            float hash21(vec2 p) {
-                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+            float hash(vec2 p) {
+                float h = dot(p, vec2(127.1, 311.7));
+                return fract(sin(h) * 43758.5453123);
             }
             
-            float noise(vec2 p) {
-                vec2 i = floor(p);
-                vec2 f = fract(p);
+            // Voronoi/cellular noise function
+            vec2 voronoi(vec2 x) {
+                vec2 n = floor(x);
+                vec2 f = fract(x);
                 
-                // Four corners
-                float a = hash21(i);
-                float b = hash21(i + vec2(1.0, 0.0));
-                float c = hash21(i + vec2(0.0, 1.0));
-                float d = hash21(i + vec2(1.0, 1.0));
+                vec2 mg, mr;
+                float md = 8.0;
                 
-                // Cubic Hermine curve
-                vec2 u = f * f * (3.0 - 2.0 * f);
+                for(int i = -1; i <= 1; i++) {
+                    for(int j = -1; j <= 1; j++) {
+                        vec2 g = vec2(float(i), float(j));
+                        vec2 o = hash(n + g) * 0.5 + 0.5;
+                        
+                        // Add time-based movement to cell centers
+                        o += 0.1 * sin(t * 0.5 + o * 6.28);
+                        
+                        vec2 r = g + o - f;
+                        float d = dot(r, r);
+                        
+                        if(d < md) {
+                            md = d;
+                            mr = r;
+                            mg = g;
+                        }
+                    }
+                }
                 
-                // Mix 4 corners
-                return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+                return vec2(md, hash(n + mg));
             }
             
             void main() {
@@ -616,7 +629,7 @@
                 
                 float time = t * 0.4;
                 
-                // Create multiple layers of noise at different scales and speeds
+                // Create multiple layers of cellular patterns at different scales and speeds
                 float scale1 = 4.0 + sin(time * 0.2) * 2.0;
                 float scale2 = 8.0 + cos(time * 0.1) * 4.0;
                 float scale3 = 16.0;
@@ -627,33 +640,55 @@
                 mat2 rot1 = mat2(cos(a1), -sin(a1), sin(a1), cos(a1));
                 mat2 rot2 = mat2(cos(a2), -sin(a2), sin(a2), cos(a2));
                 
-                // Generate noise layers
-                float n1 = noise(p * scale1 * rot1);
-                float n2 = noise(p * scale2 * rot2);
-                float n3 = noise(p * scale3);
+                // Generate cellular layers
+                vec2 c1 = voronoi(p * scale1 * rot1);
+                vec2 c2 = voronoi(p * scale2 * rot2);
+                vec2 c3 = voronoi(p * scale3);
                 
-                // Create pattern by combining noise layers
-                float pattern = n1 * 0.6 + n2 * 0.3 + n3 * 0.1;
+                // Extract distance and cell ID from Voronoi
+                float d1 = c1.x; // Distance to cell edge
+                float d2 = c2.x;
+                float d3 = c3.x;
+                float id1 = c1.y; // Cell ID (random per cell)
+                float id2 = c2.y;
+                float id3 = c3.y;
                 
-                // Create sharp edges
-                float edge = smoothstep(0.4, 0.5, pattern) * smoothstep(0.6, 0.5, pattern);
+                // Create cell edges/borders
+                float edge1 = 1.0 - smoothstep(0.0, 0.05, d1);
+                float edge2 = 1.0 - smoothstep(0.0, 0.05, d2);
+                float edge3 = 1.0 - smoothstep(0.0, 0.025, d3);
+                
+                // Create combined cell pattern
+                float cells = edge1 * 0.6 + edge2 * 0.3 + edge3 * 0.1;
+                
+                // Create cell interior coloring based on cell ID
+                float pattern1 = id1;
+                float pattern2 = id2;
+                float pattern3 = id3 * 0.5;
+                
+                // Mix patterns with pulsing
+                float pattern = mix(pattern1, pattern2, 0.5 + 0.5 * sin(time * 0.3));
+                pattern = mix(pattern, pattern3, 0.2 + 0.2 * cos(time * 0.5));
                 
                 // Create base color from pattern
                 vec3 baseColor1 = hsv2rgb(vec3(0.55 + pattern * 0.1, 0.6, 0.6)); // Blue-purple range
                 vec3 baseColor2 = hsv2rgb(vec3(0.95 + pattern * 0.1, 0.7, 0.7)); // Pink-red range
                 vec3 baseColor = mix(baseColor1, baseColor2, 0.5 + 0.5 * sin(time * 0.2));
                 
-                // Create edge color
+                // Create cell edge color
                 vec3 edgeColor = hsv2rgb(vec3(0.6 + pattern * 0.2, 0.9, 0.9)); // Bright accent color
                 
-                // Combine colors
-                vec3 color = mix(baseColor, edgeColor, edge);
+                // Combine cell interior and edges
+                vec3 cellColor = mix(baseColor, edgeColor, cells);
                 
-                // Add light sources
-                for (int i = 0; i < 3; i++) {
+                // Add dynamic light sources
+                vec3 lightColor = vec3(1.0, 0.9, 0.8); // Warm light
+                float light = 0.0;
+                
+                for (float i = 0.0; i < 3.0; i++) {
                     // Light position with circular motion
-                    float angle = time * 0.5 + float(i) * 2.09;
-                    float radius = 0.5 + 0.3 * sin(time * 0.2 + float(i));
+                    float angle = time * 0.5 + i * 2.09;
+                    float radius = 0.5 + 0.3 * sin(time * 0.2 + i);
                     vec2 lightPos = vec2(sin(angle), cos(angle)) * radius;
                     
                     // Light intensity with distance falloff
@@ -661,11 +696,13 @@
                     float intensity = 0.15 / (dist * dist + 0.01);
                     
                     // Add pulsing effect
-                    intensity *= 0.8 + 0.2 * sin(time * 2.0 + float(i) * 2.0);
+                    intensity *= 0.8 + 0.2 * sin(time * 2.0 + i * 2.0);
                     
-                    // Add light to the color
-                    color += vec3(1.0, 0.9, 0.8) * intensity;
+                    light += intensity;
                 }
+                
+                // Add light effect to the cell pattern
+                vec3 color = cellColor + lightColor * light;
                 
                 // Add depth effect with dark areas
                 float darkness = smoothstep(0.0, 0.5, length(p));
@@ -678,203 +715,7 @@
                 gl_FragColor = vec4(color, 1.0);
             }
             `,
-            // Effect 10: Aurora Dreams - Northern lights-inspired effect with organic flowing patterns
-            `
-            precision highp float;
-            uniform vec2 r;
-            uniform float t;
-            varying vec2 vUv;
-            
-            vec3 hsv2rgb(vec3 c) {
-                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-            }
-
-            float noise(vec2 p) {
-                return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-            }
-
-            void main() {
-                vec2 uv = vUv * 2.0 - 1.0;
-                vec2 p = uv * vec2(r.x/r.y, 1.0);
-                
-                float a = atan(p.y, p.x);
-                float r = length(p);
-                
-                // Create nebula-like effect
-                float n = noise(p + t * 0.1);
-                float f = sin(r * 10.0 - t * 2.0) * cos(a * 5.0 + t);
-                f += sin(p.x * 8.0 + t) * cos(p.y * 8.0 - t);
-                f += noise(p * 2.0 + t * 0.2) * 0.5;
-                
-                // Create multiple layers of color
-                vec3 color1 = hsv2rgb(vec3(0.6 + f * 0.2, 0.8, 0.5 + f * 0.5)); // Blue
-                vec3 color2 = hsv2rgb(vec3(0.8 + f * 0.2, 0.8, 0.5 + f * 0.5)); // Purple
-                vec3 color3 = hsv2rgb(vec3(0.9 + f * 0.2, 0.8, 0.5 + f * 0.5)); // Pink
-                
-                vec3 color = mix(color1, color2, sin(t * 0.5) * 0.5 + 0.5);
-                color = mix(color, color3, cos(t * 0.7) * 0.5 + 0.5);
-                
-                // Add stars
-                float stars = pow(noise(p * 50.0), 20.0);
-                color += vec3(1.0) * stars * 0.5;
-                
-                // Add glow
-                float glow = smoothstep(0.0, 1.0, 1.0 - r);
-                color += vec3(0.5, 0.3, 0.8) * glow * 0.3;
-                
-                gl_FragColor = vec4(color, 1.0);
-            }
-            `,
-            // Effect 11: Neon Cityscape - Bright neon lights with flickering effect
-            `
-            precision highp float;
-            uniform vec2 r;
-            uniform float t;
-            varying vec2 vUv;
-            
-            vec3 hsv2rgb(vec3 c) {
-                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-            }
-
-            float noise(vec2 p) {
-                return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-            }
-
-            void main() {
-                vec2 uv = vUv * 2.0 - 1.0;
-                vec2 p = uv * vec2(r.x/r.y, 1.0);
-                
-                float a = atan(p.y, p.x);
-                float r = length(p);
-                
-                // Create nebula-like effect
-                float n = noise(p + t * 0.1);
-                float f = sin(r * 10.0 - t * 2.0) * cos(a * 5.0 + t);
-                f += sin(p.x * 8.0 + t) * cos(p.y * 8.0 - t);
-                f += noise(p * 2.0 + t * 0.2) * 0.5;
-                
-                // Create multiple layers of color
-                vec3 color1 = hsv2rgb(vec3(0.6 + f * 0.2, 0.8, 0.5 + f * 0.5)); // Blue
-                vec3 color2 = hsv2rgb(vec3(0.8 + f * 0.2, 0.8, 0.5 + f * 0.5)); // Purple
-                vec3 color3 = hsv2rgb(vec3(0.9 + f * 0.2, 0.8, 0.5 + f * 0.5)); // Pink
-                
-                vec3 color = mix(color1, color2, sin(t * 0.5) * 0.5 + 0.5);
-                color = mix(color, color3, cos(t * 0.7) * 0.5 + 0.5);
-                
-                // Add stars
-                float stars = pow(noise(p * 50.0), 20.0);
-                color += vec3(1.0) * stars * 0.5;
-                
-                // Add glow
-                float glow = smoothstep(0.0, 1.0, 1.0 - r);
-                color += vec3(0.5, 0.3, 0.8) * glow * 0.3;
-                
-                gl_FragColor = vec4(color, 1.0);
-            }
-            `,
-            // Effect 12: Ocean Depths - Deep sea bioluminescent effect with light rays and particles
-            `
-            precision highp float;
-            uniform vec2 r;
-            uniform float t;
-            varying vec2 vUv;
-            
-            vec3 hsv2rgb(vec3 c) {
-                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-            }
-
-            // Random function
-            float random(vec2 st) {
-                return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-            }
-            
-            // Noise function
-            float noise(vec2 st) {
-                vec2 i = floor(st);
-                vec2 f = fract(st);
-                
-                // Four corners in 2D of a tile
-                float a = random(i);
-                float b = random(i + vec2(1.0, 0.0));
-                float c = random(i + vec2(0.0, 1.0));
-                float d = random(i + vec2(1.0, 1.0));
-                
-                // Smooth interpolation
-                vec2 u = f * f * (3.0 - 2.0 * f);
-                
-                // Mix 4 corners
-                return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-            }
-            
-            void main() {
-                vec2 uv = vUv * 2.0 - 1.0;
-                vec2 p = uv * vec2(r.x/r.y, 1.0);
-                
-                float time = t * 0.5;
-                
-                // Base water color (light blue)
-                vec3 waterColor = vec3(0.1, 0.3, 0.5);
-                
-                // Create caustics effect with multiple overlapping sine waves
-                float caustics = 0.0;
-                
-                // First layer of caustics
-                vec2 pos1 = p * 15.0 + vec2(time * 0.7, time * 0.5);
-                float c1 = sin(pos1.x) * sin(pos1.y);
-                
-                // Second layer with different frequency and speed
-                vec2 pos2 = p * 12.0 + vec2(-time * 0.5, time * 0.3);
-                float c2 = sin(pos2.x) * sin(pos2.y);
-                
-                // Third layer with more variance
-                vec2 pos3 = p * 18.0 + vec2(time * 0.2, -time * 0.6);
-                float c3 = sin(pos3.x) * sin(pos3.y);
-                
-                // Fourth layer for more realistic caustics
-                vec2 pos4 = p * 6.0 + vec2(-time * 0.3, -time * 0.4);
-                float c4 = sin(pos4.x) * sin(pos4.y);
-                
-                // Combine all layers
-                caustics = c1 * 0.4 + c2 * 0.3 + c3 * 0.2 + c4 * 0.1;
-                caustics = pow(caustics * 0.5 + 0.5, 2.0); // Enhance contrast
-                
-                // Add light variation based on noise
-                float noiseVal = noise(p * 2.0 + time * 0.1);
-                
-                // Create varying light intensity
-                float light = caustics * (0.8 + 0.2 * noiseVal);
-                
-                // Apply color gradient from deep blue to cyan
-                vec3 deepColor = vec3(0.0, 0.1, 0.3); // Deep water
-                vec3 lightColor = vec3(0.4, 0.7, 1.0); // Light caustics
-                
-                // Main water color mix
-                vec3 color = mix(deepColor, lightColor, light);
-                
-                // Add subtle shimmer
-                float shimmer = noise(p * 50.0 + time * 5.0) * 0.05;
-                color += vec3(shimmer);
-                
-                // Add subtle blue glow in center
-                float glow = 0.2 * (1.0 - length(p * 0.5));
-                glow = max(0.0, glow);
-                color += vec3(0.0, 0.1, 0.3) * glow;
-                
-                // Add subtle vignette
-                float vignette = 1.0 - length(p * 0.7);
-                vignette = smoothstep(0.0, 1.0, vignette);
-                color *= vignette * 1.1;
-                
-                gl_FragColor = vec4(color, 1.0);
-            }
-            `,
-            // Effect 13: Burning Mandelbrot - A fiery take on the classic fractal with warm colors
+            // New Effect: Burning Mandelbrot - A fiery take on the classic fractal with warm colors
             `
             precision highp float;
             uniform vec2 r;
@@ -1006,7 +847,7 @@
                 gl_FragColor = vec4(color, 1.0);
             }
             `,
-            // Effect 14: Julia Spirals - Dynamic Julia set with evolving spiral patterns
+            // New Effect: Julia Spirals - Dynamic Julia set with evolving spiral patterns
             `
             precision highp float;
             uniform vec2 r;
@@ -1131,7 +972,7 @@
                 gl_FragColor = vec4(color, 1.0);
             }
             `,
-            // Effect 15: Water Caustics - Underwater light refraction patterns
+            // New Effect: Water Caustics - Underwater light refraction patterns
             `
             precision highp float;
             uniform vec2 r;
