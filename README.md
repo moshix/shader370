@@ -1,10 +1,10 @@
 # WebGL Shader Visualizer
 
-A dynamic WebGL shader visualization application with music playback capabilities. This project features 15 unique shader effects that create mesmerizing visual patterns synchronized with background music.
+A dynamic WebGL shader visualization application with music playback capabilities. This project features 16 unique shader effects that create mesmerizing visual patterns synchronized with background music.
 
 ## Features
 
-- 15 unique WebGL shader effects:
+- 16 unique WebGL shader effects:
   1. Current flowing pattern
   2. Cosmic Nebula
   3. Dynamic Mandala
@@ -20,6 +20,7 @@ A dynamic WebGL shader visualization application with music playback capabilitie
   13. Burning Mandelbrot
   14. Julia Spirals
   15. Water Caustics
+  16. Psychedelic Swirl
 
 - Music playback system with:
   - Random track selection
@@ -44,6 +45,7 @@ A dynamic WebGL shader visualization application with music playback capabilitie
 - **Burning Mandelbrot**: A fiery take on the classic Mandelbrot fractal with warm, dynamic colors
 - **Julia Spirals**: Dynamic Julia set with evolving spiral patterns and shifting colors
 - **Water Caustics**: Realistic underwater light refraction patterns with shimmer effects
+- **Psychedelic Swirl**: Mind-bending warping patterns with recursive distortions and vivid coloration
 
 ## Technical Details
 
