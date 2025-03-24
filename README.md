@@ -37,12 +37,19 @@ A dynamic WebGL shader visualization application with music playback capabilitie
 
 ## Effect Descriptions
 
+- **Current Flowing Pattern**: Electric current visualization with dynamic flow and color transitions
+- **Cosmic Nebula**: Space-inspired effect with stars, nebula clouds, and cosmic dust
+- **Dynamic Mandala**: Intricate geometric patterns that evolve and rotate with time
+- **Electric Field**: Simulation of electric field lines with dynamic charge interactions
+- **Wave Interference**: Red-themed interference patterns creating mesmerizing wave effects
+- **Kaleidoscope**: Rainbow-colored kaleidoscopic patterns with smooth transitions
+- **Dynamic Geometric**: Complex geometric patterns with rotating and scaling elements
 - **Quantum Flux**: Hypnotic effect with layered, fractal-inspired patterns and pulsating color gradients
 - **Liquid Crystal**: Beautiful fluid-like movement with prismatic colors that simulate liquid crystal displays
 - **Aurora Dreams**: Northern lights-inspired effect with organic flowing patterns and starry background
 - **Neon Cityscape**: Cyberpunk-inspired city with glowing neon signs, animated rain, and flying vehicles
-- **Ocean Depths**: Deep sea bioluminescent effect with light rays and underwater caustic patterns
-- **Burning Mandelbrot**: A fiery take on the classic Mandelbrot fractal with warm, dynamic colors
+- **Ocean Depths**: Enhanced underwater scene with bioluminescent jellyfish, dynamic caustics, and floating particles
+- **Burning Mandelbrot**: High-detail Mandelbrot zoom with dynamic coloring and ember effects
 - **Julia Spirals**: Dynamic Julia set with evolving spiral patterns and shifting colors
 - **Water Caustics**: Realistic underwater light refraction patterns with shimmer effects
 - **Psychedelic Swirl**: Mind-bending warping patterns with recursive distortions and vivid coloration
@@ -54,6 +61,8 @@ A dynamic WebGL shader visualization application with music playback capabilitie
 - Implements a custom music player with track management
 - Responsive design that works on any screen size
 - User interaction required to start audio (for browser compatibility)
+- High-performance shader implementations with dynamic quality scaling
+- Custom favicon support
 
 ## Usage
 
@@ -65,11 +74,19 @@ A dynamic WebGL shader visualization application with music playback capabilitie
 4. Use left/right arrow keys to manually cycle through effects
 5. Effects will automatically cycle every 30 seconds
 
+## Performance Notes
+
+- The Mandelbrot effect (Effect #13) features high-detail rendering with dynamic iteration counts
+- Ocean Depths effect includes complex particle systems and multiple light sources
+- All effects are optimized for modern GPUs while maintaining compatibility
+- Effects automatically adjust quality based on performance capabilities
+
 ## Requirements
 
 - Modern web browser with WebGL support
 - JavaScript enabled
 - Audio playback capability
+- GPU with shader support
 
 ## Credits
 
