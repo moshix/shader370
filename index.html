@@ -917,7 +917,7 @@
                 gl_FragColor = vec4(color, 1.0);
             }
             `,
-            // Effect 12: Ocean Depths - Deep sea bioluminescent effect with light rays and particles
+            // Effect 12: Ocean Depths - Enhanced with bioluminescence and dynamic sea life
             `
             precision highp float;
             uniform vec2 r;
@@ -930,89 +930,145 @@
                 return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
             }
 
-            // Random function
-            float random(vec2 st) {
-                return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-            }
-            
-            // Noise function
+            // Enhanced noise function for more organic patterns
             float noise(vec2 st) {
                 vec2 i = floor(st);
                 vec2 f = fract(st);
+                f = f * f * (3.0 - 2.0 * f);
                 
-                // Four corners in 2D of a tile
-                float a = random(i);
-                float b = random(i + vec2(1.0, 0.0));
-                float c = random(i + vec2(0.0, 1.0));
-                float d = random(i + vec2(1.0, 1.0));
+                float a = fract(sin(dot(i, vec2(12.9898, 78.233))) * 43758.5453);
+                float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453);
+                float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453);
+                float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453);
                 
-                // Smooth interpolation
-                vec2 u = f * f * (3.0 - 2.0 * f);
+                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            }
+            
+            // Jellyfish shape function
+            float jellyfish(vec2 p, vec2 center, float size, float time) {
+                vec2 pos = p - center;
+                float angle = atan(pos.y, pos.x);
+                float radius = length(pos);
                 
-                // Mix 4 corners
-                return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+                // Pulsating body
+                float body = smoothstep(size, size * 0.9, radius);
+                body *= 1.0 + 0.2 * sin(time * 2.0);
+                
+                // Tentacles
+                float tentacles = 0.0;
+                for(float i = 0.0; i < 8.0; i++) {
+                    float angleOffset = i * 3.14159 * 2.0 / 8.0;
+                    float wavyTentacle = sin(angle + angleOffset) * sin(radius * 10.0 - time * 3.0);
+                    tentacles += smoothstep(0.1, 0.0, abs(wavyTentacle)) * smoothstep(size * 2.0, size, radius);
+                }
+                
+                return body + tentacles * 0.3;
             }
             
             void main() {
                 vec2 uv = vUv * 2.0 - 1.0;
                 vec2 p = uv * vec2(r.x/r.y, 1.0);
-                
                 float time = t * 0.5;
                 
-                // Base water color (light blue)
-                vec3 waterColor = vec3(0.1, 0.3, 0.5);
-                
-                // Create caustics effect with multiple overlapping sine waves
+                // Enhanced layered caustics
                 float caustics = 0.0;
+                for(float i = 1.0; i < 4.0; i++) {
+                    vec2 pos = p * (5.0 * i) + vec2(time * i * 0.2, time * i * 0.1);
+                    caustics += sin(pos.x) * sin(pos.y) * (0.5 / i);
+                    
+                    // Add rotated layer
+                    float angle = time * 0.1 * i;
+                    vec2 rotPos = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * pos;
+                    caustics += sin(rotPos.x) * sin(rotPos.y) * (0.3 / i);
+                }
+                caustics = pow(caustics * 0.5 + 0.5, 2.0);
                 
-                // First layer of caustics
-                vec2 pos1 = p * 15.0 + vec2(time * 0.7, time * 0.5);
-                float c1 = sin(pos1.x) * sin(pos1.y);
+                // Multiple layers of water movement
+                float waterNoise = 0.0;
+                for(float i = 1.0; i < 5.0; i++) {
+                    waterNoise += noise(p * (3.0 * i) + time * vec2(0.1, 0.2) * i) * (1.0 / i);
+                }
                 
-                // Second layer with different frequency and speed
-                vec2 pos2 = p * 12.0 + vec2(-time * 0.5, time * 0.3);
-                float c2 = sin(pos2.x) * sin(pos2.y);
+                // Create depth gradient
+                float depth = p.y * 0.5 + 0.5;
+                vec3 waterColor = mix(
+                    vec3(0.0, 0.2, 0.3), // Deep water
+                    vec3(0.1, 0.4, 0.6), // Shallow water
+                    depth
+                );
                 
-                // Third layer with more variance
-                vec2 pos3 = p * 18.0 + vec2(time * 0.2, -time * 0.6);
-                float c3 = sin(pos3.x) * sin(pos3.y);
+                // Add caustics effect
+                vec3 causticColor = mix(
+                    vec3(0.2, 0.5, 0.7), // Blue caustics
+                    vec3(0.4, 0.7, 1.0), // White-blue caustics
+                    caustics
+                );
+                waterColor = mix(waterColor, causticColor, caustics * 0.5);
                 
-                // Fourth layer for more realistic caustics
-                vec2 pos4 = p * 6.0 + vec2(-time * 0.3, -time * 0.4);
-                float c4 = sin(pos4.x) * sin(pos4.y);
+                // Add multiple jellyfish with different movements
+                float jellies = 0.0;
+                for(float i = 0.0; i < 3.0; i++) {
+                    float jTime = time + i * 2.0;
+                    vec2 jellyCenter = vec2(
+                        sin(jTime * 0.5 + i * 2.0) * 0.5,
+                        cos(jTime * 0.3 + i * 1.5) * 0.3 - 0.2
+                    );
+                    float size = 0.15 + 0.05 * sin(jTime + i);
+                    jellies += jellyfish(p, jellyCenter, size, jTime);
+                }
                 
-                // Combine all layers
-                caustics = c1 * 0.4 + c2 * 0.3 + c3 * 0.2 + c4 * 0.1;
-                caustics = pow(caustics * 0.5 + 0.5, 2.0); // Enhance contrast
+                // Bioluminescent glow for jellyfish
+                vec3 jellyGlow = mix(
+                    vec3(0.2, 0.4, 0.8), // Blue bioluminescence
+                    vec3(0.3, 0.7, 1.0), // Bright blue-white
+                    sin(time) * 0.5 + 0.5
+                );
+                waterColor = mix(waterColor, jellyGlow, jellies * 0.8);
                 
-                // Add light variation based on noise
-                float noiseVal = noise(p * 2.0 + time * 0.1);
+                // Add floating particles
+                float particles = 0.0;
+                for(float i = 0.0; i < 10.0; i++) {
+                    vec2 particlePos = vec2(
+                        fract(sin(i * 234.5) * 543.21),
+                        fract(cos(i * 123.4) * 432.15)
+                    ) * 2.0 - 1.0;
+                    particlePos += vec2(sin(time + i), cos(time * 0.5 + i)) * 0.3;
+                    float particle = smoothstep(0.02, 0.0, length(p - particlePos));
+                    particles += particle;
+                }
                 
-                // Create varying light intensity
-                float light = caustics * (0.8 + 0.2 * noiseVal);
+                // Add particle glow with color variation
+                vec3 particleColor = hsv2rgb(vec3(
+                    0.5 + 0.1 * sin(time), // Varying hue
+                    0.8,                    // High saturation
+                    1.0                     // Full brightness
+                ));
+                waterColor += particleColor * particles * 0.5;
                 
-                // Apply color gradient from deep blue to cyan
-                vec3 deepColor = vec3(0.0, 0.1, 0.3); // Deep water
-                vec3 lightColor = vec3(0.4, 0.7, 1.0); // Light caustics
+                // Enhanced volumetric light rays
+                float rays = 0.0;
+                for(float i = 0.0; i < 8.0; i++) {
+                    float angle = i * 3.14159 * 2.0 / 8.0;
+                    vec2 rayDir = vec2(sin(angle), cos(angle));
+                    float ray = smoothstep(0.2, 0.0, abs(dot(normalize(p), rayDir)));
+                    rays += ray * (0.5 + 0.5 * sin(time + i));
+                }
+                rays *= smoothstep(1.0, 0.0, length(p));
                 
-                // Main water color mix
-                vec3 color = mix(deepColor, lightColor, light);
+                // Add rays to final color
+                waterColor += vec3(0.3, 0.5, 0.7) * rays * 0.3;
                 
-                // Add subtle shimmer
-                float shimmer = noise(p * 50.0 + time * 5.0) * 0.05;
-                color += vec3(shimmer);
+                // Add subtle color variations based on noise
+                waterColor *= 0.8 + 0.2 * waterNoise;
                 
-                // Add subtle blue glow in center
-                float glow = 0.2 * (1.0 - length(p * 0.5));
-                glow = max(0.0, glow);
-                color += vec3(0.0, 0.1, 0.3) * glow;
+                // Enhanced vignette effect
+                float vignette = smoothstep(1.2, 0.5, length(p));
+                waterColor *= vignette * 1.2;
                 
-                // Add subtle vignette
-                float vignette = 1.0 - length(p * 0.7);
-                vignette = smoothstep(0.0, 1.0, vignette);
-                color *= vignette * 1.1;
+                // Final color adjustments
+                waterColor = pow(waterColor, vec3(0.8)); // Gamma correction
                 
-                gl_FragColor = vec4(color, 1.0);
+                gl_FragColor = vec4(waterColor, 1.0);
             }
             `,
             // Effect 13: Burning Mandelbrot - Deep zoom into seahorse valley
