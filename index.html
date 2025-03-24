@@ -1044,8 +1044,8 @@
                 // Starting at a point in seahorse valley (-0.743643887037158704752191506114774, 0.131825904205311970493132056385139)
                 vec2 center = vec2(-0.743643887037158704752191506114774, 0.131825904205311970493132056385139);
                 
-                // Slower, more controlled exponential zoom
-                float zoom = pow(2.0, effectTime * 2.0); // Reduced zoom speed for smoother progression
+                // Faster, more aggressive exponential zoom
+                float zoom = pow(2.0, effectTime * 3.0); // Increased zoom speed from 2.0 to 3.0
                 
                 // Add slight rotation for more dynamic effect
                 float angle = effectTime * 0.1; // Slower rotation
@@ -1058,14 +1058,14 @@
                 // Initialize Mandelbrot iteration
                 vec2 z = vec2(0.0);
                 float iteration = 0.0;
-                float maxIterations = 500.0; // Increased for better detail at high zoom
+                float maxIterations = 1000.0; // Doubled for better detail at high zoom
                 
                 // Track the orbit for coloring
                 vec2 orbit = vec2(0.0);
                 
-                // Main Mandelbrot loop with dynamic iteration count based on zoom
-                float dynamicIterations = maxIterations * (1.0 + log(zoom) * 0.1);
-                for (float i = 0.0; i < 500.0; i++) {
+                // Main Mandelbrot loop with enhanced dynamic iteration count based on zoom
+                float dynamicIterations = maxIterations * (1.0 + log(zoom) * 0.2); // Increased scaling factor from 0.1 to 0.2
+                for (float i = 0.0; i < 1000.0; i++) { // Match loop limit with maxIterations
                     if (i >= dynamicIterations) break;
                     
                     // Store last orbit for trap coloring
