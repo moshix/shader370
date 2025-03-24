@@ -1014,7 +1014,7 @@
                 gl_FragColor = vec4(color, 1.0);
             }
             `,
-            // Effect 13: Burning Mandelbrot - A fiery take on the classic fractal with warm colors
+            // Effect 13: Burning Mandelbrot - Deep zoom into seahorse valley
             `
             precision highp float;
             uniform vec2 r;
@@ -1037,32 +1037,35 @@
                 vec2 p = uv * vec2(r.x/r.y, 1.0);
                 
                 // Time-based animation parameters
-                float time = t * 0.1;
+                float time = t * 0.2; // Faster time progression
                 // Reset time for smoother transitions when effect starts
-                float effectTime = mod(time, 30.0);
+                float effectTime = mod(time, 15.0); // Shorter cycle for faster zoom
                 
-                // Mandelbrot position and zoom parameters
-                float zoom = 1.8 + 0.5 * sin(effectTime * 0.3);
-                vec2 center = vec2(-0.6 + 0.2 * sin(effectTime * 0.2), 0.0 + 0.1 * cos(effectTime * 0.3));
+                // Deep zoom parameters
+                // Starting at a point in seahorse valley (-0.743643887037158704752191506114774, 0.131825904205311970493132056385139)
+                vec2 center = vec2(-0.743643887037158704752191506114774, 0.131825904205311970493132056385139);
                 
-                // Rotate the view slightly over time
-                float angle = effectTime * 0.1;
+                // Faster exponential zoom
+                float zoom = pow(2.0, effectTime * 4.0); // Doubled zoom speed
+                
+                // Add slight rotation for more dynamic effect
+                float angle = effectTime * 0.2; // Faster rotation
                 mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
                 p = rot * p;
                 
-                // Calculate actual complex plane coordinates
+                // Calculate actual complex plane coordinates with zoom
                 vec2 c = p / zoom + center;
                 
                 // Initialize Mandelbrot iteration
                 vec2 z = vec2(0.0);
                 float iteration = 0.0;
-                float maxIterations = 120.0;
+                float maxIterations = 300.0; // Increased for better detail at high zoom
                 
                 // Track the orbit for coloring
                 vec2 orbit = vec2(0.0);
                 
                 // Main Mandelbrot loop
-                for (float i = 0.0; i < 120.0; i++) {
+                for (float i = 0.0; i < 300.0; i++) {
                     if (i >= maxIterations) break;
                     
                     // Store last orbit for trap coloring
@@ -1090,7 +1093,7 @@
                 
                 // Create a burning color palette (oranges, reds, yellows)
                 vec3 fire1 = palette(
-                    normalized + effectTime * 0.1,
+                    normalized + effectTime * 0.2, // Faster color cycling
                     vec3(0.5, 0.5, 0.5),   // brightness
                     vec3(0.5, 0.5, 0.5),   // contrast
                     vec3(1.0, 1.0, 1.0),   // oscillation frequency
@@ -1099,7 +1102,7 @@
                 
                 // Create a second color palette for variation
                 vec3 fire2 = palette(
-                    normalized + effectTime * 0.05,
+                    normalized + effectTime * 0.1, // Faster color cycling
                     vec3(0.5, 0.5, 0.5),
                     vec3(0.5, 0.5, 0.5),
                     vec3(1.0, 1.0, 1.0),
@@ -1107,7 +1110,7 @@
                 );
                 
                 // Create lava-like effect by combining palettes
-                vec3 color = mix(fire1, fire2, sin(normalized * 20.0 + effectTime) * 0.5 + 0.5);
+                vec3 color = mix(fire1, fire2, sin(normalized * 20.0 + effectTime * 2.0) * 0.5 + 0.5);
                 
                 // Make inside of Mandelbrot set dark with subtle red glow
                 if (iteration >= maxIterations) {
@@ -1117,12 +1120,12 @@
                 }
                 
                 // Add orbit trap effect (gives more intricate details)
-                float trap = 0.5 + 0.5 * sin(length(orbit) * 14.0 + effectTime * 2.0);
+                float trap = 0.5 + 0.5 * sin(length(orbit) * 14.0 + effectTime * 4.0); // Faster trap animation
                 color = mix(color, vec3(1.0, 0.8, 0.6), trap * 0.1 * (1.0 - normalized));
                 
                 // Add heat distortion effect around edges
                 float edge = smoothstep(0.0, 0.2, normalized) * smoothstep(1.0, 0.8, normalized);
-                float distortion = sin(normalized * 30.0 + effectTime * 3.0) * 0.5 + 0.5;
+                float distortion = sin(normalized * 30.0 + effectTime * 6.0) * 0.5 + 0.5; // Faster distortion
                 color = mix(color, vec3(1.0, 0.9, 0.3), edge * distortion * 0.3);
                 
                 // Apply gamma correction for better visual
@@ -1136,9 +1139,9 @@
                 // Add embers effect - small bright dots
                 float embers = 0.0;
                 for (float i = 0.0; i < 5.0; i++) {
-                    float t = effectTime * (0.5 + i * 0.1);
-                    float x = sin(t * 1.1 + i * 3.0) * 0.7;
-                    float y = cos(t * 0.8 + i * 1.0) * 0.7;
+                    float t = effectTime * (1.0 + i * 0.2); // Faster ember movement
+                    float x = sin(t * 2.2 + i * 6.0) * 0.7;
+                    float y = cos(t * 1.6 + i * 2.0) * 0.7;
                     embers += 0.02 / length(p - vec2(x, y));
                 }
                 color += vec3(1.0, 0.7, 0.3) * smoothstep(1.5, 6.0, embers) * 0.2;
@@ -1146,7 +1149,7 @@
                 gl_FragColor = vec4(color, 1.0);
             }
             `,
-            // Effect 14: Julia Spirals - Dynamic Julia set with evolving spiral patterns
+            // Effect 14: Julia Spirals - Deep zoom into dynamic Julia set
             `
             precision highp float;
             uniform vec2 r;
@@ -1163,99 +1166,78 @@
                 vec2 uv = vUv * 2.0 - 1.0;
                 vec2 p = uv * vec2(r.x/r.y, 1.0);
                 
-                float time = t * 0.3;
+                // Time progression with reset every 15 seconds
+                float time = t * 0.2;
+                float effectTime = mod(time, 15.0);
                 
-                // Center and zoom animation
-                float zoom = 2.5 + sin(time * 0.1) * 0.5;
+                // Controlled zoom with maximum limit
+                float zoom = 1.0 + effectTime * 0.5; // Linear zoom instead of exponential
                 vec2 center = vec2(0.0, 0.0);
-                center += vec2(sin(time * 0.2), cos(time * 0.1)) * 0.2;
                 
                 // Transform coordinates
                 p = p / zoom + center;
                 
-                // Julia set parameters
-                float n_value = 2.0 + sin(time * 0.1) * 0.5; // Power varies between 1.5 and 2.5
-                
-                // Rotating c parameter for Julia set
-                float cAngle = time * 0.3;
-                float cRadius = 0.7; // Controls the "wildness" of the Julia set
+                // Julia set parameters with stable rotation
+                float cAngle = effectTime * 0.2; // Slower, constant rotation
+                float cRadius = 0.7;
                 vec2 c = vec2(cos(cAngle), sin(cAngle)) * cRadius;
-                c *= 0.5 + 0.2 * sin(time * 0.2); // Vary the radius too
                 
                 // Initialize iteration
                 vec2 z = p;
                 float iterations = 0.0;
                 float maxIterations = 100.0;
                 
-                // For orbit trap coloring
-                float minDistance = 1000.0;
-                
                 // Main Julia set loop
                 for(float i = 0.0; i < 100.0; i++) {
                     if (i >= maxIterations) break;
                     
-                    // Save current distance for orbit trap
-                    float dist = length(z);
-                    minDistance = min(minDistance, dist);
+                    // z = z^2 + c
+                    z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
                     
-                    // If outside escape radius
-                    if (dist > 2.0) {
+                    // Check if point escapes
+                    if (length(z) > 2.0) {
                         iterations = i;
                         break;
                     }
-                    
-                    // z = z^n + c (using complex number formula)
-                    // First get polar form
-                    float r = length(z);
-                    float theta = atan(z.y, z.x);
-                    
-                    // Raise to power n
-                    r = pow(r, n_value);
-                    theta = theta * n_value;
-                    
-                    // Convert back to cartesian
-                    z = vec2(r * cos(theta), r * sin(theta)) + c;
                 }
                 
-                // Smooth coloring formula
+                // Smooth coloring
                 float smooth_iterations = iterations;
                 if (iterations < maxIterations) {
-                    // Log of base 2 for smooth coloring
                     smooth_iterations = iterations - log2(log2(length(z))) + 4.0;
                 }
                 
-                // Normalize iteration count
                 float normalized = smooth_iterations / maxIterations;
                 
-                // Create base color using green/gold palette
+                // Create color
                 vec3 color = vec3(0.0);
                 
                 if (iterations < maxIterations) {
-                    // Create green/gold/teal palette
-                    float hue = 0.3 + 0.1 * sin(normalized * 20.0 + time); // Green to teal
-                    float sat = 0.7 + 0.3 * cos(normalized * 5.0 + time * 0.5); 
+                    // Create green/gold/teal palette with stable color cycling
+                    float hue = 0.3 + 0.1 * sin(normalized * 20.0 + effectTime * 0.5);
+                    float sat = 0.7 + 0.3 * cos(normalized * 5.0 + effectTime * 0.3);
                     float val = 0.6 + 0.4 * normalized;
                     
                     color = hsv2rgb(vec3(hue, sat, val));
                     
-                    // Add spiral patterns based on angles
+                    // Add spiral patterns with stable animation
                     float angle = atan(p.y, p.x);
-                    float spiralPattern = sin(angle * 8.0 + minDistance * 15.0 - time * 2.0);
-                    float spiralIntensity = 0.4 + 0.3 * sin(time * 0.5);
+                    float spiralPattern = sin(angle * 8.0 + length(z) * 15.0 - effectTime);
+                    float spiralIntensity = 0.4 + 0.3 * sin(effectTime * 0.3);
                     
                     // Apply spiral highlights
                     color = mix(color, hsv2rgb(vec3(0.4, 0.9, 1.0)), spiralPattern * spiralIntensity * (1.0 - normalized));
                     
                     // Add edge glow
                     float edge = smoothstep(0.0, 0.1, normalized) * smoothstep(1.0, 0.8, normalized);
-                    color += hsv2rgb(vec3(0.15, 0.9, 0.9)) * edge * 0.5; // Gold glow
+                    color += hsv2rgb(vec3(0.15, 0.9, 0.9)) * edge * 0.5;
                 } else {
                     // Inside Julia set
-                    color = vec3(0.05, 0.15, 0.1); // Deep green/blue
+                    color = vec3(0.05, 0.15, 0.1);
                     
-                    // Add subtle details inside
-                    float detail = minDistance * 10.0;
-                    detail = sin(detail * 20.0 + time) * 0.5 + 0.5;
+                    // Add subtle details inside with stable animation
+                    float detail = length(z) * 10.0;
+                    detail = sin(detail * 20.0 + effectTime * 0.5) * 0.5 + 0.5;
                     color = mix(color, vec3(0.0, 0.3, 0.2), detail * 0.3);
                 }
                 
@@ -1267,104 +1249,6 @@
                 float vignette = 1.0 - length(uv * 0.7);
                 vignette = smoothstep(0.0, 1.0, vignette);
                 color *= vignette * 1.2;
-                
-                gl_FragColor = vec4(color, 1.0);
-            }
-            `,
-            // Effect 15: Water Caustics - Underwater light refraction patterns
-            `
-            precision highp float;
-            uniform vec2 r;
-            uniform float t;
-            varying vec2 vUv;
-            
-            vec3 hsv2rgb(vec3 c) {
-                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-            }
-
-            // Random function
-            float random(vec2 st) {
-                return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-            }
-            
-            // Noise function
-            float noise(vec2 st) {
-                vec2 i = floor(st);
-                vec2 f = fract(st);
-                
-                // Four corners in 2D of a tile
-                float a = random(i);
-                float b = random(i + vec2(1.0, 0.0));
-                float c = random(i + vec2(0.0, 1.0));
-                float d = random(i + vec2(1.0, 1.0));
-                
-                // Smooth interpolation
-                vec2 u = f * f * (3.0 - 2.0 * f);
-                
-                // Mix 4 corners
-                return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-            }
-            
-            void main() {
-                vec2 uv = vUv * 2.0 - 1.0;
-                vec2 p = uv * vec2(r.x/r.y, 1.0);
-                
-                float time = t * 0.5;
-                
-                // Base water color (light blue)
-                vec3 waterColor = vec3(0.1, 0.3, 0.5);
-                
-                // Create caustics effect with multiple overlapping sine waves
-                float caustics = 0.0;
-                
-                // First layer of caustics
-                vec2 pos1 = p * 15.0 + vec2(time * 0.7, time * 0.5);
-                float c1 = sin(pos1.x) * sin(pos1.y);
-                
-                // Second layer with different frequency and speed
-                vec2 pos2 = p * 12.0 + vec2(-time * 0.5, time * 0.3);
-                float c2 = sin(pos2.x) * sin(pos2.y);
-                
-                // Third layer with more variance
-                vec2 pos3 = p * 18.0 + vec2(time * 0.2, -time * 0.6);
-                float c3 = sin(pos3.x) * sin(pos3.y);
-                
-                // Fourth layer for more realistic caustics
-                vec2 pos4 = p * 6.0 + vec2(-time * 0.3, -time * 0.4);
-                float c4 = sin(pos4.x) * sin(pos4.y);
-                
-                // Combine all layers
-                caustics = c1 * 0.4 + c2 * 0.3 + c3 * 0.2 + c4 * 0.1;
-                caustics = pow(caustics * 0.5 + 0.5, 2.0); // Enhance contrast
-                
-                // Add light variation based on noise
-                float noiseVal = noise(p * 2.0 + time * 0.1);
-                
-                // Create varying light intensity
-                float light = caustics * (0.8 + 0.2 * noiseVal);
-                
-                // Apply color gradient from deep blue to cyan
-                vec3 deepColor = vec3(0.0, 0.1, 0.3); // Deep water
-                vec3 lightColor = vec3(0.4, 0.7, 1.0); // Light caustics
-                
-                // Main water color mix
-                vec3 color = mix(deepColor, lightColor, light);
-                
-                // Add subtle shimmer
-                float shimmer = noise(p * 50.0 + time * 5.0) * 0.05;
-                color += vec3(shimmer);
-                
-                // Add subtle blue glow in center
-                float glow = 0.2 * (1.0 - length(p * 0.5));
-                glow = max(0.0, glow);
-                color += vec3(0.0, 0.1, 0.3) * glow;
-                
-                // Add subtle vignette
-                float vignette = 1.0 - length(p * 0.7);
-                vignette = smoothstep(0.0, 1.0, vignette);
-                color *= vignette * 1.1;
                 
                 gl_FragColor = vec4(color, 1.0);
             }
