@@ -64,6 +64,15 @@
             font-family: Arial, sans-serif;
             font-size: 14px;
             pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        #effectName {
+            color: rgba(255, 255, 255, 0.3);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            pointer-events: none;
         }
         button {
             background: #4CAF50;
@@ -95,7 +104,10 @@
         <button id="skipButton">⏭️ Skip Track</button>
         <div id="currentTrack" style="margin-top: 5px; font-size: 14px;"></div>
     </div>
-    <div id="effectNumber"></div>
+    <div id="effectNumber">
+        <span id="effectNumberText"></span>
+        <span id="effectName"></span>
+    </div>
     <div id="copyright">(c) hot dog studios</div>
     
     <script>
@@ -1309,9 +1321,7 @@
                 
                 gl_FragColor = vec4(color, 1.0);
             }
-            `
-            ,
-
+            `,
             // Effect 16: Psychedelic Swirl - Mind-bending warping patterns
             `
             precision highp float;
@@ -1421,7 +1431,6 @@
 
         let musicFiles = [
             'cool.mp3',
-            'Country_Gentleman.mp3',
             'starwalk.mp3',
             'Fear.mp3',
             'Parallax.mp3',
@@ -1595,14 +1604,22 @@
 
             let startTime = performance.now();
 
+            let effectInterval;
+
             function changeEffect(direction = 1) {
                 currentEffect = (currentEffect + direction + shaderEffects.length) % shaderEffects.length;
                 program = createProgram(gl, vertexShaderSrc, shaderEffects[currentEffect]);
                 gl.useProgram(program);
                 
-                // Reset time when Mandelbrot effect (Effect #13) is selected
-                if (currentEffect === 12) { // 0-based index for Effect #13
+                // Reset time when Mandelbrot effect (Effect #13) or Julia Spirals (Effect #14) is selected
+                if (currentEffect === 12 || currentEffect === 13) { // 0-based index for Effect #13 and #14
                     startTime = performance.now();
+                    // Clear existing interval
+                    if (effectInterval) {
+                        clearInterval(effectInterval);
+                    }
+                    // Set new interval starting from now
+                    effectInterval = setInterval(changeEffect, 30000);
                 }
                 
                 // Rebind attributes
@@ -1610,9 +1627,33 @@
                 gl.enableVertexAttribArray(position);
                 gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
                 
-                // Update effect number
-                document.getElementById('effectNumber').textContent = `${currentEffect + 1}`;
+                // Update effect number and name
+                document.getElementById('effectNumberText').textContent = `${currentEffect + 1}`;
+                
+                // Get effect name from the shader effects index comments
+                const effectNames = [
+                    "Flowing Currents",
+                    "Cosmic Nebula",
+                    "Dynamic Mandala",
+                    "Electric Field",
+                    "Wave Interference",
+                    "Kaleidoscope",
+                    "Geometric Flow",
+                    "Quantum Flux",
+                    "Liquid Crystal",
+                    "Aurora Dreams",
+                    "Neon Cityscape",
+                    "Ocean Depths",
+                    "Burning Mandelbrot",
+                    "Julia Spirals",
+                    "Water Caustics",
+                    "Psychedelic Swirl"
+                ];
+                document.getElementById('effectName').textContent = effectNames[currentEffect];
             }
+
+            // Initial interval setup
+            effectInterval = setInterval(changeEffect, 30000);
 
             // Add keyboard controls
             window.addEventListener('keydown', (event) => {
@@ -1639,12 +1680,6 @@
                 requestAnimationFrame(render);
             }
 
-            // Change effect every 30 seconds
-            setInterval(changeEffect, 30000);
-            
-            // Set initial effect number
-            document.getElementById('effectNumber').textContent = `${currentEffect + 1}`;
-            
             render();
         }
 
